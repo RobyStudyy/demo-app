@@ -10,7 +10,7 @@ pipeline {
     stages {
         stage('Checkout') {
             steps {
-                git 'https://github.com/RobyStudyy/demo-app.git'
+                 git branch: 'main', url: 'https://github.com/RobyStudyy/demo-app.git'
             }
         }
 
