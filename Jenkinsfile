@@ -2,7 +2,6 @@ pipeline {
     agent any
 
     environment {
-        DOCKERHUB_CREDENTIALS = credentials('dockerhub-creds')
         DOCKERHUB_REPO = 'roby20/demo-app'
         KUBECONFIG = '/home/jenkins/.kube/config'
     }
@@ -10,24 +9,23 @@ pipeline {
     stages {
         stage('Checkout') {
             steps {
-                 git branch: 'main', url: 'https://github.com/RobyStudyy/demo-app.git'
+                git branch: 'main', url: 'https://github.com/RobyStudyy/demo-app.git'
             }
         }
 
         stage('Build Docker Image') {
             steps {
-                script {
-                    sh 'docker build -t $DOCKERHUB_REPO:latest .'
-                }
+                sh 'docker build -t $DOCKERHUB_REPO:latest .'
             }
         }
 
         stage('Push to DockerHub') {
             steps {
-                script {
+                withCredentials([usernamePassword(credentialsId: 'dockerhub-creds', usernameVariable: 'DOCKER_USER', passwordVariable: 'DOCKER_PASS')]) {
                     sh '''
-                    echo $DOCKERHUB_CREDENTIALS_PSW | docker login -u $DOCKERHUB_CREDENTIALS_USR --password-stdin
-                    docker push $DOCKERHUB_REPO:latest
+                        echo "Logging in to DockerHub..."
+                        echo $DOCKER_PASS | docker login -u $DOCKER_USER --password-stdin
+                        docker push $DOCKERHUB_REPO:latest
                     '''
                 }
             }
@@ -35,13 +33,11 @@ pipeline {
 
         stage('Deploy to Minikube using Helm') {
             steps {
-                script {
-                    sh '''
+                sh '''
                     helm upgrade --install demo-app helm/demo-app \
                       --set image.repository=$DOCKERHUB_REPO \
                       --set image.tag=latest
-                    '''
-                }
+                '''
             }
         }
 
